@@ -1,0 +1,3 @@
+modelos:
+  filtro: "deepseek-r1:8b"  # scoring y ranking — mejor razonamiento discriminativo
+  escritura: "phi3.5"       # CV adaptado, cartas, extracción de perfil

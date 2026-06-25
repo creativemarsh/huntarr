@@ -1,0 +1,35 @@
+ubicacion: "Chile"
+horas_atras: 168
+resultados_por_termino: 25
+fuentes:
+  - indeed
+
+terminos_busqueda:
+  - "data engineer"
+  - "data analyst"
+  - "cloud engineer"
+  - "ingeniero de datos"
+  - "analista de datos"
+  - "python developer"
+  - "analista bi"
+  - "cloud aws"
+  - "data junior"
+  - "data azure"
+  - "data scientist"
+  - "ciencia de datos"
+  - "big data"
+  - "hadoop"
+  - "spark"
+  - "scala"
+  - "sql"
+  - "nosql"
+  - "etl"
+  - "data warehouse"
+  - "data lake"
+  - "data governance"
+  - "data security"
+  - "data visualization"
+  - "data mining"
+  - "data engineering"
+  - "data architecture"
+  - "data modeling"

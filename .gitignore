@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+profile.json
+jobs.json
+state.json
+output/cvs/
+output/cartas/
+output/DIARIO_*.md
+matcher/cv_base.pdf
+scraper/input_manual/*.html
+scraper/input_manual/*.pdf
+backend/CLAUDE.md

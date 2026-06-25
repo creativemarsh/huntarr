@@ -1,0 +1,28 @@
+Evalúa las siguientes {n} ofertas de trabajo para este candidato:
+
+CANDIDATO:
+- Cargo objetivo: {cargo_objetivo}
+- Skills: {skills}
+- Años de experiencia: {experiencia_anos} (estudiante)
+- Educación: {educacion}
+
+OFERTAS:
+{ofertas_texto}
+
+Devuelve SOLO este JSON (sin texto antes ni después):
+{{
+  "evaluaciones": [
+    {{"n": 1, "score": <0-100>, "razon": "<una oración>"}},
+    {{"n": 2, "score": <0-100>, "razon": "<una oración>"}}
+  ]
+}}
+
+El array debe tener exactamente {n} objetos, en el mismo orden que las ofertas.
+
+Criterios de score:
+- 0: No relacionado con datos/cloud/programación, o requiere >2 años de experiencia explícitamente
+- 41-60: Algo relacionado (QA con SQL, web con Python básico)
+- 61-80: Directamente relacionado con datos o cloud, acepta juniors o sin experiencia
+- 81-100: Exactamente lo que busca, menciona skills del candidato
+
+El candidato es estudiante sin experiencia. No penalices por eso.
