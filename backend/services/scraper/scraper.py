@@ -38,6 +38,15 @@ def get_new_jobs(from_index: int) -> list[dict]:
         return _state["jobs"][from_index:]
 
 
+def get_all_jobs() -> list[dict]:
+    if not JOBS_PATH.exists():
+        return []
+    try:
+        return json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+
 def start(cfg: dict, terms: list[str]) -> bool:
     with _lock:
         if _state["running"]:
@@ -152,12 +161,29 @@ def _df_to_list(df: pd.DataFrame) -> list[dict]:
             "url": url,
             "descripcion": str(row.get("description", ""))[:3000],
             "fecha_scrape": datetime.now().isoformat(),
+            "fecha_publicacion": _safe_date(row.get("date_posted")),
             "salario_min": _safe_float(row.get("min_amount")),
             "salario_max": _safe_float(row.get("max_amount")),
             "es_remoto": bool(row.get("is_remote", False)),
             "fuente": str(row.get("site", "")),
         })
     return result
+
+
+def _safe_date(val) -> str | None:
+    if val is None:
+        return None
+    try:
+        if pd.isna(val):
+            return None
+    except Exception:
+        pass
+    try:
+        if hasattr(val, "isoformat"):
+            return val.isoformat()
+        return str(val)
+    except Exception:
+        return None
 
 
 def _safe_float(val) -> float | None:

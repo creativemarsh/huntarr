@@ -22,6 +22,11 @@ def start_scraper():
     return {"ok": True, "terms_count": len(terms)}
 
 
+@router.get("/scraper/jobs")
+def list_jobs():
+    return scraper_svc.get_all_jobs()
+
+
 @router.delete("/scraper/jobs")
 def clear_jobs():
     if scraper_svc.get_state()["running"]:
