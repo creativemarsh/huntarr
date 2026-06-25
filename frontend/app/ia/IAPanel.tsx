@@ -39,6 +39,7 @@ export default function IAPanel() {
   const [error, setError]             = useState<string | null>(null);
   const [filter, setFilter]           = useState<Filter>("all");
   const [loading, setLoading]         = useState(true);
+  const [modelInfo, setModelInfo]     = useState<{ proveedor: string; modelo: string } | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -46,6 +47,10 @@ export default function IAPanel() {
     fetch("http://localhost:8000/api/ia/status")
       .then(r => r.json())
       .then(s => { if (s.running) { setRunning(true); connectSSE(); } })
+      .catch(() => {});
+    fetch("http://localhost:8000/api/config")
+      .then(r => r.json())
+      .then(d => setModelInfo({ proveedor: d.proveedor, modelo: d.modelo_filtro }))
       .catch(() => {});
   }, []);
 
@@ -140,6 +145,11 @@ export default function IAPanel() {
                   ? "Sin resultados. Califica las ofertas scrapeadas."
                   : `${results.length} oferta(s) calificadas`}
             </p>
+            {modelInfo && (
+              <p className="text-xs text-zinc-600 mt-1">
+                {modelInfo.proveedor} · <span className="font-mono">{modelInfo.modelo}</span>
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {!running && results.length > 0 && (

@@ -81,13 +81,19 @@ def _run(cfg: dict, terms: list[str]) -> None:
                     linkedin_fetch_description=True,
                 )
                 df = scrape_jobs(**kwargs)
+
+                if not df.empty:
+                    df = df[df["job_url"].apply(
+                        lambda u: bool(u) and str(u).strip() != "" and
+                        hashlib.md5(str(u).strip().encode()).hexdigest()[:12] not in existing_ids
+                    )]
+
                 jobs = _df_to_list(df)
 
                 for job in jobs:
-                    if job["id"] not in existing_ids:
-                        existing_ids.add(job["id"])
-                        with _lock:
-                            _state["jobs"].append(job)
+                    existing_ids.add(job["id"])
+                    with _lock:
+                        _state["jobs"].append(job)
 
             except Exception as e:
                 pass

@@ -69,17 +69,28 @@ Evalúa qué tan bien encaja esta oferta con el candidato y devuelve SOLO este J
 
 Criterios de puntuación base:
 - 0: Sin relación con el perfil (médico, vendedor, operario, etc.)
-- 0: Requiere EXPLÍCITAMENTE más años de experiencia de los que tiene el candidato
 - 10-40: Relacionada con TI pero no con el área del candidato
 - 41-60: Parcialmente relacionada (ej: QA con SQL, web con Python)
 - 61-80: Directamente relacionada, acepta el nivel de experiencia del candidato
 - 81-100: Exactamente lo que busca, menciona skills específicas del candidato
 
 Penalizaciones obligatorias (aplica SIEMPRE, no son opcionales):
-- Si la oferta requiere un idioma específico Y el candidato NO tiene ese idioma en su lista de idiomas: score MÁXIMO 45, sin excepción. Esto aplica a cualquier idioma (inglés, portugués, francés, etc.).
-- Si la oferta NO es remota Y la ciudad de la oferta es distinta a la del candidato: descuenta 20 puntos del score base. Si el candidato no puede reubicarse fácilmente (ciudades distintas del mismo país), esto es una barrera real.
 
-No penalices por falta de experiencia a menos que la oferta lo exija explícitamente.
+AÑOS DE EXPERIENCIA:
+- Busca en "Basic Qualifications", "Required", "Requisitos" o secciones similares si hay un requisito de años (ej: "3+ years", "4+ años", "mínimo 5 años").
+- Ignora el lenguaje motivacional ("si recién estás comenzando", "don't let it stop you", etc.) — ese texto NO cancela los requisitos duros.
+- Si la oferta requiere MÁS años de los que tiene el candidato ({experiencia_anos} años), aplica esta escala de penalización sobre el score base:
+  - Diferencia de 1-2 años: resta 10 puntos
+  - Diferencia de 3-4 años: resta 25 puntos
+  - Diferencia de 5+ años: resta 40 puntos
+- Cuando apliques esta penalización, la `razon` DEBE mencionar explícitamente cuántos años pide la oferta y cuántos tiene el candidato (ej: "pide 4+ años de experiencia pero el candidato tiene 0").
+
+IDIOMAS:
+- Si la oferta requiere un idioma específico Y el candidato NO tiene ese idioma en su lista de idiomas: score MÁXIMO 45, sin excepción. Aplica a cualquier idioma.
+
+UBICACIÓN:
+- Si la oferta NO es remota Y la ciudad de la oferta es distinta a la del candidato: descuenta 20 puntos del score base.
+
 Devuelve SOLO el JSON, sin texto adicional."""
 
 
@@ -137,6 +148,11 @@ def start(jobs: list[dict], profile: Profile) -> bool:
 
 def _run(jobs: list[dict], profile: Profile) -> None:
     try:
+        cfg = _load_config()
+        modelo = cfg["modelos"]["filtro"]
+        proveedor = cfg.get("proveedor", "ollama")
+        print(f"[scorer] proveedor={proveedor} modelo={modelo} jobs={len(jobs)}")
+
         existing_scores = load_scores()
 
         for job in jobs:

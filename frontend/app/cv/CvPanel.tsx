@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 type Profile = {
   nombre: string;
@@ -25,7 +25,15 @@ export default function CvPanel({ initialStatus }: { initialStatus: CvStatus | n
   const [extracting, setExtracting] = useState(false);
   const [uploadResult, setUploadResult]   = useState<{ ok: boolean; message: string } | null>(null);
   const [extractResult, setExtractResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [modelInfo, setModelInfo] = useState<{ proveedor: string; modelo: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/config")
+      .then(r => r.json())
+      .then(d => setModelInfo({ proveedor: d.proveedor, modelo: d.modelo_escritura }))
+      .catch(() => {});
+  }, []);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -107,7 +115,14 @@ export default function CvPanel({ initialStatus }: { initialStatus: CvStatus | n
 
       {/* Extract */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
-        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Perfil Extraído</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Perfil Extraído</h2>
+          {modelInfo && (
+            <span className="text-xs text-zinc-600">
+              {modelInfo.proveedor} · <span className="font-mono">{modelInfo.modelo}</span>
+            </span>
+          )}
+        </div>
 
         {status.profile_extracted && (
           <p className="text-sm text-emerald-400">✓ Perfil extraído</p>
