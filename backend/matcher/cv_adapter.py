@@ -19,8 +19,8 @@ a { color: #1a1a1a; }
 """
 
 ROOT = Path(__file__).parent.parent
-CV_PATH = Path(__file__).parent / "cv_base.pdf"
-OUTPUT_DIR = ROOT / "cvs"
+CV_PATH = ROOT / "data" / "input" / "cv_base.pdf"
+OUTPUT_DIR = ROOT / "data" / "output" / "cvs"
 
 _config = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
 MODELO_ESCRITURA: str = _config["modelos"]["escritura"]

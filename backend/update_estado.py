@@ -15,7 +15,7 @@ from pathlib import Path
 
 from shared.models import State
 
-STATE_PATH = Path(__file__).parent / "state.json"
+STATE_PATH = Path(__file__).parent / "data" / "state" / "state.json"
 ESTADOS_VALIDOS = ["pendiente", "postulado", "descartado", "en_proceso", "rechazado"]
 
 
@@ -31,7 +31,7 @@ def main() -> None:
         sys.exit(1)
 
     if not STATE_PATH.exists():
-        print("No existe state.json. Corre el pipeline primero.")
+        print("No existe data/state/state.json. Corre el pipeline primero.")
         sys.exit(1)
 
     state = State(**json.loads(STATE_PATH.read_text(encoding="utf-8")))

@@ -13,9 +13,11 @@ from shared.models import PostulacionEstado, State
 from shared.profile import extract_profile
 
 ROOT = Path(__file__).parent
-JOBS_PATH = ROOT / "jobs.json"
-STATE_PATH = ROOT / "state.json"
-OUTPUT_DIR = ROOT / "output"
+DATA_DIR = ROOT / "data"
+JOBS_PATH = DATA_DIR / "state" / "jobs.json"
+STATE_PATH = DATA_DIR / "state" / "state.json"
+OUTPUT_DIR = DATA_DIR / "output"
+TEMPLATES_DIR = DATA_DIR / "templates"
 PROCESADAS_RETENTION_DAYS = 60
 
 
@@ -26,6 +28,7 @@ def load_state() -> State:
 
 
 def save_state(state: State) -> None:
+    STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     STATE_PATH.write_text(state.model_dump_json(indent=2), encoding="utf-8-sig")
 
 
@@ -38,6 +41,7 @@ def load_jobs() -> list[dict]:
 
 
 def save_jobs(jobs: list[dict]) -> None:
+    JOBS_PATH.parent.mkdir(parents=True, exist_ok=True)
     JOBS_PATH.write_text(
         json.dumps(jobs, indent=2, ensure_ascii=False), encoding="utf-8-sig"
     )
@@ -65,7 +69,7 @@ def limpiar_procesadas(state: State, jobs: list[dict]) -> None:
 
 
 def generar_diario(nuevas: list[dict], state: State, stats: dict) -> Path:
-    env = Environment(loader=FileSystemLoader(str(OUTPUT_DIR / "templates")))
+    env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
     estados = {p.id: p.estado for p in state.postuladas}
 
     def estado_emoji(estado: str) -> str:
@@ -105,7 +109,8 @@ def generar_diario(nuevas: list[dict], state: State, stats: dict) -> Path:
         **stats,
     )
 
-    diario_path = OUTPUT_DIR / f"DIARIO_{datetime.now().strftime('%Y-%m-%d')}.md"
+    diario_path = OUTPUT_DIR / "reports" / f"DIARIO_{datetime.now().strftime('%Y-%m-%d')}.md"
+    diario_path.parent.mkdir(parents=True, exist_ok=True)
     diario_path.write_text(contenido, encoding="utf-8-sig")
     return diario_path
 

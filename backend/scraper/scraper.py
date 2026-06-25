@@ -10,7 +10,7 @@ from jobspy import scrape_jobs
 CONFIG = yaml.safe_load(
     (Path(__file__).parent / "config.yaml").read_text(encoding="utf-8")
 )
-INPUT_MANUAL = Path(__file__).parent / "input_manual"
+INPUT_MANUAL = Path(__file__).parent.parent / "data" / "input" / "manual"
 
 
 def scrape() -> list[dict]:

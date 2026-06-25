@@ -8,8 +8,8 @@ from .models import Profile
 from .ollama_client import chat_json
 
 ROOT = Path(__file__).parent.parent
-PROFILE_PATH = ROOT / "profile.json"
-CV_PATH = ROOT / "matcher" / "cv_base.pdf"
+PROFILE_PATH = ROOT / "data" / "state" / "profile.json"
+CV_PATH = ROOT / "data" / "input" / "cv_base.pdf"
 
 _config = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
 MODELO_ESCRITURA: str = _config["modelos"]["escritura"]
@@ -27,7 +27,7 @@ def extract_profile() -> Profile:
     if not CV_PATH.exists():
         raise FileNotFoundError(
             f"\n❌ No se encontró el CV en: {CV_PATH}\n"
-            "   Copia tu CV como  matcher/cv_base.pdf  y vuelve a correr el pipeline.\n"
+            "   Copia tu CV como  data/input/cv_base.pdf  y vuelve a correr el pipeline.\n"
         )
 
     print("  Extrayendo perfil del CV (solo ocurre la primera vez)...")

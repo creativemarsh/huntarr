@@ -6,7 +6,7 @@ from shared.models import Profile
 from shared.ollama_client import chat
 
 ROOT = Path(__file__).parent.parent
-OUTPUT_DIR = ROOT / "output" / "cartas"
+OUTPUT_DIR = ROOT / "data" / "output" / "cartas"
 
 _config = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
 MODELO_ESCRITURA: str = _config["modelos"]["escritura"]
