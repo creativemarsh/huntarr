@@ -97,6 +97,17 @@ def _run(cfg: dict, terms: list[str]) -> None:
             _state["current_term"] = ""
 
 
+def clear() -> None:
+    with _lock:
+        _state["running"] = False
+        _state["done"] = False
+        _state["error"] = None
+        _state["jobs"] = []
+        _state["current_term"] = ""
+    if JOBS_PATH.exists():
+        JOBS_PATH.unlink()
+
+
 def _load_existing_ids() -> set:
     if not JOBS_PATH.exists():
         return set()

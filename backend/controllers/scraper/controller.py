@@ -22,6 +22,14 @@ def start_scraper():
     return {"ok": True, "terms_count": len(terms)}
 
 
+@router.delete("/scraper/jobs")
+def clear_jobs():
+    if scraper_svc.get_state()["running"]:
+        raise HTTPException(409, "No se puede limpiar mientras el scraping está en curso")
+    scraper_svc.clear()
+    return {"ok": True}
+
+
 @router.get("/scraper/status")
 def get_status():
     return scraper_svc.get_state()

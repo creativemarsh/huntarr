@@ -68,6 +68,17 @@ export default function OfertasScrapeadas() {
     };
   }
 
+  async function handleClear() {
+    try {
+      await fetch("http://localhost:8000/api/scraper/jobs", { method: "DELETE" });
+      setJobs([]);
+      setDone(false);
+      setError(null);
+    } catch {
+      setError("Error al limpiar historial");
+    }
+  }
+
   async function handleStart() {
     setError(null);
     setDone(false);
@@ -95,17 +106,27 @@ export default function OfertasScrapeadas() {
               <p className="text-xs text-zinc-500 mt-0.5">{jobs.length} oferta(s) encontrada(s)</p>
             )}
           </div>
-          <button
-            onClick={handleStart}
-            disabled={running}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              running
-                ? "bg-zinc-700 text-zinc-400 cursor-not-allowed"
-                : "bg-violet-600 hover:bg-violet-500 text-white"
-            }`}
-          >
-            {running ? "Scrapeando..." : "Iniciar scraping"}
-          </button>
+          <div className="flex items-center gap-2">
+            {!running && jobs.length > 0 && (
+              <button
+                onClick={handleClear}
+                className="px-3 py-2 rounded-lg text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-colors"
+              >
+                Limpiar
+              </button>
+            )}
+            <button
+              onClick={handleStart}
+              disabled={running}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                running
+                  ? "bg-zinc-700 text-zinc-400 cursor-not-allowed"
+                  : "bg-violet-600 hover:bg-violet-500 text-white"
+              }`}
+            >
+              {running ? "Scrapeando..." : "Iniciar scraping"}
+            </button>
+          </div>
         </div>
 
         {running && (
