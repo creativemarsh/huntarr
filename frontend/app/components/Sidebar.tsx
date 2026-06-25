@@ -7,7 +7,8 @@ const nav = [
   { href: "/configuracion", label: "Configuración", icon: "⚙️" },
   { href: "/dashboard",     label: "Dashboard",     icon: "📊", disabled: true },
   { href: "/cv",            label: "Mi CV",          icon: "📄" },
-  { href: "/postulaciones", label: "Postulaciones",  icon: "💼" },
+  { href: "/ofertas",       label: "Ofertas",        icon: "💼" },
+  { href: "/ia",            label: "IA",             icon: "🤖" },
 ];
 
 export default function Sidebar() {

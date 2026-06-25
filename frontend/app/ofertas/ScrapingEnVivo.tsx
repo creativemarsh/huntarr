@@ -10,6 +10,7 @@ type Job = {
   url: string;
   descripcion: string;
   es_remoto: boolean;
+  fuente: string;
 };
 
 interface Props {
@@ -115,14 +116,25 @@ export default function ScrapingEnVivo({ onDone }: Props) {
           {jobs.map(job => (
             <div key={job.id} className="flex items-start gap-3 py-2 border-t border-zinc-800 first:border-0">
               <div className="min-w-0 flex-1">
-                <a
-                  href={job.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-medium text-zinc-200 hover:text-violet-400 transition-colors line-clamp-1"
-                >
-                  {job.titulo}
-                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-medium text-zinc-200 hover:text-violet-400 transition-colors line-clamp-1"
+                  >
+                    {job.titulo}
+                  </a>
+                  {job.fuente && job.fuente !== "nan" && (
+                    <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                      job.fuente === "linkedin"
+                        ? "bg-blue-900/60 text-blue-300"
+                        : "bg-zinc-700 text-zinc-300"
+                    }`}>
+                      {job.fuente}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-zinc-500 mt-0.5">
                   {job.empresa}
                   {job.ubicacion && job.ubicacion !== "nan" && (

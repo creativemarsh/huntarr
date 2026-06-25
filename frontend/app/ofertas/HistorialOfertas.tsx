@@ -14,6 +14,7 @@ type Job = {
   es_remoto: boolean;
   salario_min: number | null;
   salario_max: number | null;
+  fuente: string;
 };
 
 type Recency = "all" | "1d" | "3d" | "7d" | "14d" | "30d";
@@ -32,6 +33,7 @@ export default function HistorialOfertas() {
   const [search, setSearch]                 = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [recency, setRecency]               = useState<Recency>("all");
+  const [fuenteFilter, setFuenteFilter]     = useState("");
 
   useEffect(() => { loadJobs(); }, []);
 
@@ -61,6 +63,14 @@ export default function HistorialOfertas() {
     return Array.from(set).sort();
   }, [allJobs]);
 
+  const fuentes = useMemo(() => {
+    const set = new Set<string>();
+    allJobs.forEach(j => {
+      if (j.fuente && j.fuente !== "nan") set.add(j.fuente);
+    });
+    return Array.from(set).sort();
+  }, [allJobs]);
+
   const filteredJobs = useMemo(() => {
     let jobs = allJobs;
 
@@ -85,10 +95,14 @@ export default function HistorialOfertas() {
       });
     }
 
-    return jobs;
-  }, [allJobs, search, locationFilter, recency]);
+    if (fuenteFilter) {
+      jobs = jobs.filter(j => j.fuente === fuenteFilter);
+    }
 
-  const hasFilters = search.trim() !== "" || locationFilter !== "" || recency !== "all";
+    return jobs;
+  }, [allJobs, search, locationFilter, recency, fuenteFilter]);
+
+  const hasFilters = search.trim() !== "" || locationFilter !== "" || recency !== "all" || fuenteFilter !== "";
 
   return (
     <div className="space-y-4">
@@ -144,9 +158,19 @@ export default function HistorialOfertas() {
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
+          {fuentes.length > 1 && (
+            <select
+              value={fuenteFilter}
+              onChange={e => setFuenteFilter(e.target.value)}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-400 focus:outline-none focus:border-zinc-600"
+            >
+              <option value="">Todas las fuentes</option>
+              {fuentes.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+          )}
           {hasFilters && (
             <button
-              onClick={() => { setSearch(""); setLocationFilter(""); setRecency("all"); }}
+              onClick={() => { setSearch(""); setLocationFilter(""); setRecency("all"); setFuenteFilter(""); }}
               className="px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
             >
               Limpiar filtros
@@ -180,14 +204,25 @@ function JobCard({ job }: { job: Job }) {
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <a
-            href={job.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium text-zinc-100 hover:text-violet-400 transition-colors line-clamp-1"
-          >
-            {job.titulo}
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href={job.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-zinc-100 hover:text-violet-400 transition-colors line-clamp-1"
+            >
+              {job.titulo}
+            </a>
+            {job.fuente && job.fuente !== "nan" && (
+              <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                job.fuente === "linkedin"
+                  ? "bg-blue-900/60 text-blue-300"
+                  : "bg-zinc-700 text-zinc-300"
+              }`}>
+                {job.fuente}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-zinc-400 mt-0.5">
             {job.empresa}
             {job.ubicacion && job.ubicacion !== "nan" && (

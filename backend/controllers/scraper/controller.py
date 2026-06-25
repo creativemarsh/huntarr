@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from services.scraper import scraper as scraper_svc
+from services.scorer import scorer as scorer_svc
 from services.search.config import load as load_search_cfg, get_search_terms
 
 router = APIRouter()
@@ -32,6 +33,7 @@ def clear_jobs():
     if scraper_svc.get_state()["running"]:
         raise HTTPException(409, "No se puede limpiar mientras el scraping está en curso")
     scraper_svc.clear()
+    scorer_svc.clear()
     return {"ok": True}
 
 

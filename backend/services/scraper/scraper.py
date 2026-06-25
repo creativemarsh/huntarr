@@ -72,12 +72,13 @@ def _run(cfg: dict, terms: list[str]) -> None:
 
             try:
                 kwargs = dict(
-                    site_name=["indeed"],
-                    search_term=term,
+                    site_name=["indeed", "linkedin"],
+                    search_term=f'"{term}"',
                     location=cfg.get("ubicacion", "Chile"),
                     hours_old=cfg.get("horas_atras", 168),
                     results_wanted=cfg.get("resultados_por_termino", 25),
                     country_indeed="Chile",
+                    linkedin_fetch_description=True,
                 )
                 df = scrape_jobs(**kwargs)
                 jobs = _df_to_list(df)
@@ -159,7 +160,7 @@ def _df_to_list(df: pd.DataFrame) -> list[dict]:
             "empresa": str(row.get("company", "")),
             "ubicacion": str(row.get("location", "")),
             "url": url,
-            "descripcion": str(row.get("description", ""))[:3000],
+            "descripcion": str(row.get("description", ""))[:8000],
             "fecha_scrape": datetime.now().isoformat(),
             "fecha_publicacion": _safe_date(row.get("date_posted")),
             "salario_min": _safe_float(row.get("min_amount")),
