@@ -1,7 +1,10 @@
+import json
 import shutil
 from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from pydantic import BaseModel
 
 from services.cv.extractor import (
     cv_exists,
@@ -9,11 +12,27 @@ from services.cv.extractor import (
     get_profile,
     extract_profile,
     CV_PATH,
+    PROFILE_PATH,
 )
+from services.search.config import populate_from_profile
+from models.profile import Profile
 
 ROOT = Path(__file__).parent.parent.parent
 
 router = APIRouter()
+
+
+class ProfileUpdate(BaseModel):
+    nombre: Optional[str] = None
+    cargo_objetivo: Optional[list[str]] = None
+    skills: Optional[list[str]] = None
+    educacion: Optional[str] = None
+    experiencia_anos: Optional[int] = None
+    idiomas: Optional[list[str]] = None
+    resumen: Optional[str] = None
+    ubicacion: Optional[str] = None
+    graduado: Optional[bool] = None
+    ano_graduacion: Optional[int] = None
 
 
 @router.get("/cv/status")
@@ -41,6 +60,24 @@ async def upload_cv(file: UploadFile = File(...)):
         profile_path.unlink()
 
     return {"ok": True}
+
+
+@router.patch("/cv/profile")
+def update_profile(body: ProfileUpdate):
+    profile = get_profile()
+    if not profile:
+        raise HTTPException(400, "No hay perfil extraído aún")
+    data = profile.model_dump()
+    patch = body.model_dump(exclude_none=True)
+    data.update(patch)
+    updated = Profile(**data)
+    PROFILE_PATH.write_text(updated.model_dump_json(indent=2), encoding="utf-8")
+    populate_from_profile(updated.cargo_objetivo, updated.ubicacion)
+    # Borra scores_meta para que el frontend detecte scores obsoletos
+    scores_meta = ROOT / "data" / "state" / "scores_meta.json"
+    if scores_meta.exists():
+        scores_meta.unlink()
+    return {"ok": True, "profile": updated.model_dump()}
 
 
 @router.post("/cv/extract")

@@ -13,6 +13,7 @@ type ScoredJob = {
   score: number;
   razon: string;
   scored_at: string;
+  feedback?: "up" | "down" | null;
 };
 
 type Filter = "all" | "top" | "relevant";
@@ -40,6 +41,7 @@ export default function IAPanel() {
   const [filter, setFilter]           = useState<Filter>("all");
   const [loading, setLoading]         = useState(true);
   const [modelInfo, setModelInfo]     = useState<{ proveedor: string; modelo: string } | null>(null);
+  const [stale, setStale]             = useState(false);
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -51,6 +53,10 @@ export default function IAPanel() {
     fetch("http://localhost:8000/api/config")
       .then(r => r.json())
       .then(d => setModelInfo({ proveedor: d.proveedor, modelo: d.modelo_filtro }))
+      .catch(() => {});
+    fetch("http://localhost:8000/api/ia/stale")
+      .then(r => r.json())
+      .then(d => setStale(d.stale === true))
       .catch(() => {});
   }, []);
 
@@ -85,6 +91,7 @@ export default function IAPanel() {
       } else if (msg.type === "done") {
         setRunning(false);
         setCurrentJob("");
+        setStale(false);
         loadResults();
         es.close();
       } else if (msg.type === "error") {
@@ -101,6 +108,7 @@ export default function IAPanel() {
     try {
       await fetch("http://localhost:8000/api/ia/scores", { method: "DELETE" });
       setResults([]);
+      setStale(false);
     } catch {}
   }
 
@@ -116,6 +124,18 @@ export default function IAPanel() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al iniciar scoring");
     }
+  }
+
+  async function handleFeedback(jobId: string, rating: "up" | "down") {
+    try {
+      const res = await fetch(`http://localhost:8000/api/ia/feedback/${jobId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating }),
+      });
+      const data = await res.json();
+      setResults(prev => prev.map(r => r.id === jobId ? { ...r, feedback: data.rating ?? null } : r));
+    } catch {}
   }
 
   const filtered = useMemo(() => {
@@ -174,8 +194,15 @@ export default function IAPanel() {
           </div>
         </div>
 
+        {/* Banner scores obsoletos */}
+        {stale && !running && results.length > 0 && (
+          <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <span className="text-yellow-400 text-xs">⚠ El perfil cambió desde la última calificación — los scores pueden estar desactualizados.</span>
+          </div>
+        )}
+
         {running && (
-          <div className="space-y-2">
+          <div className="space-y-2 mt-2">
             <div className="flex items-center gap-2 text-xs text-zinc-400">
               <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
               {currentJob
@@ -232,7 +259,9 @@ export default function IAPanel() {
       {/* Lista */}
       {!loading && filtered.length > 0 ? (
         <div className="space-y-3">
-          {filtered.map(job => <ScoredJobCard key={job.id} job={job} />)}
+          {filtered.map(job => (
+            <ScoredJobCard key={job.id} job={job} onFeedback={handleFeedback} />
+          ))}
         </div>
       ) : !loading && results.length > 0 ? (
         <p className="text-sm text-zinc-500 text-center py-10">
@@ -244,7 +273,13 @@ export default function IAPanel() {
   );
 }
 
-function ScoredJobCard({ job }: { job: ScoredJob }) {
+function ScoredJobCard({
+  job,
+  onFeedback,
+}: {
+  job: ScoredJob;
+  onFeedback: (id: string, rating: "up" | "down") => void;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -275,12 +310,36 @@ function ScoredJobCard({ job }: { job: ScoredJob }) {
             <p className="text-xs text-zinc-500 mt-1 italic">{job.razon}</p>
           )}
         </div>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="shrink-0 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-        >
-          {expanded ? "Menos" : "Ver más"}
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => onFeedback(job.id, "up")}
+            title="Score correcto"
+            className={`p-1.5 rounded-lg text-sm transition-colors ${
+              job.feedback === "up"
+                ? "bg-emerald-500/20 text-emerald-400"
+                : "text-zinc-600 hover:text-emerald-400 hover:bg-zinc-800"
+            }`}
+          >
+            👍
+          </button>
+          <button
+            onClick={() => onFeedback(job.id, "down")}
+            title="Score incorrecto"
+            className={`p-1.5 rounded-lg text-sm transition-colors ${
+              job.feedback === "down"
+                ? "bg-red-500/20 text-red-400"
+                : "text-zinc-600 hover:text-red-400 hover:bg-zinc-800"
+            }`}
+          >
+            👎
+          </button>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="ml-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            {expanded ? "Menos" : "Ver más"}
+          </button>
+        </div>
       </div>
 
       {expanded && job.descripcion && (

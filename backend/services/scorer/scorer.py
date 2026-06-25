@@ -1,3 +1,4 @@
+import hashlib
 import json
 import threading
 from datetime import datetime
@@ -111,6 +112,13 @@ def get_new_results(from_index: int) -> list[dict]:
         return _state["results"][from_index:]
 
 
+SCORES_META_PATH = ROOT / "data" / "state" / "scores_meta.json"
+
+
+def _profile_hash(profile: Profile) -> str:
+    return hashlib.md5(profile.model_dump_json().encode()).hexdigest()[:12]
+
+
 def load_scores() -> dict:
     if not SCORES_PATH.exists():
         return {}
@@ -118,6 +126,18 @@ def load_scores() -> dict:
         return json.loads(SCORES_PATH.read_text(encoding="utf-8"))
     except Exception:
         return {}
+
+
+def get_stale_info(profile: Profile) -> dict:
+    if not SCORES_META_PATH.exists():
+        return {"stale": False}
+    try:
+        meta = json.loads(SCORES_META_PATH.read_text(encoding="utf-8"))
+        current_hash = _profile_hash(profile)
+        stale = meta.get("profile_hash") != current_hash
+        return {"stale": stale, "scored_at": meta.get("scored_at")}
+    except Exception:
+        return {"stale": False}
 
 
 def get_all_results(jobs: list[dict]) -> list[dict]:
@@ -178,6 +198,7 @@ def _run(jobs: list[dict], profile: Profile) -> None:
                 _state["scored"] += 1
 
         _save_scores(existing_scores)
+        _save_meta(profile)
 
     except Exception as e:
         with _lock:
@@ -225,3 +246,9 @@ def _score_job(job: dict, profile: Profile) -> dict:
 def _save_scores(scores: dict) -> None:
     SCORES_PATH.parent.mkdir(parents=True, exist_ok=True)
     SCORES_PATH.write_text(json.dumps(scores, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _save_meta(profile: Profile) -> None:
+    meta = {"profile_hash": _profile_hash(profile), "scored_at": datetime.now().isoformat()}
+    SCORES_META_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SCORES_META_PATH.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")

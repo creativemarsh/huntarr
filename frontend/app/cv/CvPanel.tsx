@@ -147,19 +147,129 @@ export default function CvPanel({ initialStatus }: { initialStatus: CvStatus | n
         )}
 
         {status.profile && (
-          <div className="mt-4 space-y-3 border-t border-zinc-800 pt-4">
-            <ProfileField label="Nombre" value={status.profile.nombre} />
-            {status.profile.ubicacion && <ProfileField label="Ubicación" value={status.profile.ubicacion} />}
-            <ProfileField label="Resumen" value={status.profile.resumen} />
-            <ProfileField label="Educación" value={status.profile.educacion} />
-            <ProfileField label="Experiencia" value={`${status.profile.experiencia_anos} año(s)`} />
-            <ProfileListField label="Cargos objetivo" items={status.profile.cargo_objetivo} />
-            <ProfileListField label="Skills" items={status.profile.skills} />
-            <ProfileListField label="Idiomas" items={status.profile.idiomas} />
-          </div>
+          <ProfileViewer
+            profile={status.profile}
+            onSave={(updated) => setStatus(s => ({ ...s, profile: updated }))}
+          />
         )}
       </section>
 
+    </div>
+  );
+}
+
+function ProfileViewer({ profile, onSave }: { profile: Profile; onSave: (p: Profile) => void }) {
+  const [editing, setEditing]   = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [saveMsg, setSaveMsg]   = useState<string | null>(null);
+  const [draft, setDraft]       = useState<Profile>(profile);
+
+  function startEdit() { setDraft(profile); setEditing(true); setSaveMsg(null); }
+  function cancelEdit() { setEditing(false); setSaveMsg(null); }
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const res = await fetch("http://localhost:8000/api/cv/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail ?? "Error al guardar");
+      onSave(data.profile);
+      setEditing(false);
+      setSaveMsg("Perfil actualizado correctamente");
+    } catch (e) {
+      setSaveMsg(e instanceof Error ? e.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function setList(field: keyof Profile, raw: string) {
+    setDraft(d => ({ ...d, [field]: raw.split(",").map(s => s.trim()).filter(Boolean) }));
+  }
+
+  if (!editing) {
+    return (
+      <div className="mt-4 border-t border-zinc-800 pt-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-zinc-500">Perfil extraído</span>
+          <button onClick={startEdit} className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+            Editar
+          </button>
+        </div>
+        <ProfileField label="Nombre" value={profile.nombre} />
+        {profile.ubicacion && <ProfileField label="Ubicación" value={profile.ubicacion} />}
+        <ProfileField label="Resumen" value={profile.resumen} />
+        <ProfileField label="Educación" value={profile.educacion} />
+        <ProfileField label="Experiencia" value={`${profile.experiencia_anos} año(s)`} />
+        <ProfileListField label="Cargos objetivo" items={profile.cargo_objetivo} />
+        <ProfileListField label="Skills" items={profile.skills} />
+        <ProfileListField label="Idiomas" items={profile.idiomas} />
+        {saveMsg && <p className="text-xs text-emerald-400">{saveMsg}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 border-t border-zinc-800 pt-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-500">Editando perfil</span>
+        <div className="flex gap-2">
+          <button onClick={cancelEdit} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-3 py-1 rounded-lg text-xs font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
+          >
+            {saving ? "Guardando..." : "Guardar"}
+          </button>
+        </div>
+      </div>
+
+      <EditField label="Nombre" value={draft.nombre} onChange={v => setDraft(d => ({ ...d, nombre: v }))} />
+      <EditField label="Ubicación" value={draft.ubicacion} onChange={v => setDraft(d => ({ ...d, ubicacion: v }))} />
+      <EditField label="Educación" value={draft.educacion} onChange={v => setDraft(d => ({ ...d, educacion: v }))} />
+      <EditField label="Experiencia (años)" value={String(draft.experiencia_anos)} onChange={v => setDraft(d => ({ ...d, experiencia_anos: parseInt(v) || 0 }))} type="number" />
+      <EditArea label="Resumen" value={draft.resumen} onChange={v => setDraft(d => ({ ...d, resumen: v }))} />
+      <EditField label="Cargos objetivo (separados por coma)" value={draft.cargo_objetivo.join(", ")} onChange={v => setList("cargo_objetivo", v)} />
+      <EditField label="Skills (separadas por coma)" value={draft.skills.join(", ")} onChange={v => setList("skills", v)} />
+      <EditField label="Idiomas (separados por coma)" value={draft.idiomas.join(", ")} onChange={v => setList("idiomas", v)} />
+
+      {saveMsg && <p className="text-xs text-red-400">{saveMsg}</p>}
+    </div>
+  );
+}
+
+function EditField({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+  return (
+    <div>
+      <p className="text-xs text-zinc-500 mb-1">{label}</p>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+      />
+    </div>
+  );
+}
+
+function EditArea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <p className="text-xs text-zinc-500 mb-1">{label}</p>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        rows={3}
+        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500 resize-none"
+      />
     </div>
   );
 }
