@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 
 from shared.models import Profile
-from shared.ollama_client import chat_json
+from shared.llm_client import chat_json
 
 ROOT = Path(__file__).parent.parent
 CONFIG = yaml.safe_load(

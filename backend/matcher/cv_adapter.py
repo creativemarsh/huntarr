@@ -3,7 +3,7 @@ from pathlib import Path
 import markdown as md_lib
 import yaml
 
-from shared.ollama_client import chat
+from shared.llm_client import chat
 from shared.profile import read_pdf
 
 CSS = """

@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 
 from shared.models import Profile
-from shared.ollama_client import chat
+from shared.llm_client import chat
 
 ROOT = Path(__file__).parent.parent
 OUTPUT_DIR = ROOT / "data" / "output" / "cartas"

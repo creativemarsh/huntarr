@@ -5,7 +5,7 @@ import pdfplumber
 import yaml
 
 from .models import Profile
-from .ollama_client import chat_json
+from .llm_client import chat_json
 
 ROOT = Path(__file__).parent.parent
 PROFILE_PATH = ROOT / "data" / "state" / "profile.json"
