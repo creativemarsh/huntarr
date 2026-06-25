@@ -74,13 +74,26 @@ REGLAS IMPORTANTES:
    "Científico de Datos" y "Data Scientist"
    "Ingeniero de Datos" y "Data Engineer"
 
-4. ubicacion: usa el país o ciudad que aparece en el CV; si no hay dato claro, deja vacío.
+4. idiomas: incluye siempre el idioma en que está escrito el CV como primer idioma del candidato.
+   Agrega únicamente idiomas declarados explícitamente (ej: sección "Idiomas", "Languages", o frases como "nivel B2", "fluido", "nativo").
+   NO incluyas un idioma por el hecho de que el CV tenga términos técnicos en ese idioma (Python, SQL, etc. no son idiomas del candidato).
+   NO inventes ni inferras idiomas que no estén explícitamente declarados.
+
+5. ubicacion: usa el país o ciudad que aparece en el CV; si no hay dato claro, deja vacío.
 
 CV:
 {cv_text}
 
 Devuelve SOLO el JSON, sin texto adicional.""",
     )
+
+    for field in ("cargo_objetivo", "skills", "idiomas"):
+        if isinstance(profile_data.get(field), list):
+            seen = set()
+            profile_data[field] = [
+                x for x in profile_data[field]
+                if x and x.lower() not in seen and not seen.add(x.lower())
+            ]
 
     profile = Profile(**profile_data)
     PROFILE_PATH.parent.mkdir(parents=True, exist_ok=True)

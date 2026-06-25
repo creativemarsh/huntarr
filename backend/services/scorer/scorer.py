@@ -76,7 +76,7 @@ Criterios de puntuación base:
 - 81-100: Exactamente lo que busca, menciona skills específicas del candidato
 
 Penalizaciones obligatorias (aplica SIEMPRE, no son opcionales):
-- Si la oferta requiere inglés (menciona "English", "inglés", "bilingual", etc.) Y el candidato NO tiene inglés en su lista de idiomas: score MÁXIMO 45, sin excepción.
+- Si la oferta requiere un idioma específico Y el candidato NO tiene ese idioma en su lista de idiomas: score MÁXIMO 45, sin excepción. Esto aplica a cualquier idioma (inglés, portugués, francés, etc.).
 - Si la oferta NO es remota Y la ciudad de la oferta es distinta a la del candidato: descuenta 20 puntos del score base. Si el candidato no puede reubicarse fácilmente (ciudades distintas del mismo país), esto es una barrera real.
 
 No penalices por falta de experiencia a menos que la oferta lo exija explícitamente.

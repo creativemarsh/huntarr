@@ -164,8 +164,8 @@ function ProfileListField({ label, items }: { label: string; items: string[] }) 
     <div>
       <p className="text-xs text-zinc-500 mb-1">{label}</p>
       <div className="flex flex-wrap gap-1.5">
-        {items.map(item => (
-          <span key={item} className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-xs">
+        {items.map((item, i) => (
+          <span key={`${item}-${i}`} className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-xs">
             {item}
           </span>
         ))}
