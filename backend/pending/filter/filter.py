@@ -3,14 +3,12 @@ from pathlib import Path
 import yaml
 
 from shared.models import Profile
-from shared.llm_client import chat_json
+from shared.llm_client import chat_json, _load_config
 
 ROOT = Path(__file__).parent.parent
 CONFIG = yaml.safe_load(
     (Path(__file__).parent / "config.yaml").read_text(encoding="utf-8")
 )
-_root_config = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
-MODELO_FILTRO: str = _root_config["modelos"]["filtro"]
 
 PROMPT = (
     Path(__file__).parent / "prompts" / "ranking.txt"
@@ -74,7 +72,7 @@ def _score_oferta(oferta: dict, profile: Profile) -> tuple[int, str]:
         descripcion=oferta["descripcion"][:1000],
     )
     try:
-        result = chat_json(model=MODELO_FILTRO, prompt=prompt)
+        result = chat_json(model=_load_config()["modelos"]["filtro"], prompt=prompt)
         return int(result.get("score", 0)), str(result.get("razon", ""))
     except Exception as e:
         print(f"    ⚠ Error evaluando: {e}")

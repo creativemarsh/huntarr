@@ -5,31 +5,38 @@ import time
 from pathlib import Path
 
 import requests
-import yaml
 
-ROOT = Path(__file__).parent.parent
+ROOT = Path(__file__).parent.parent.parent
 
 TIMEOUT = 600
 MAX_RETRIES = 2
 RETRY_DELAY = 5
 
+_DEFAULTS = {
+    "proveedor": "ollama",
+    "ollama": {"base_url": "http://localhost:11434"},
+    "openrouter": {},
+    "modelos": {"filtro": "deepseek-r1:8b", "escritura": "phi3.5"},
+}
+
 
 def _load_config() -> dict:
-    base = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    import copy
+    cfg = copy.deepcopy(_DEFAULTS)
     user_path = ROOT / "data" / "user_config.json"
     if user_path.exists():
         user = json.loads(user_path.read_text(encoding="utf-8"))
         if "proveedor" in user:
-            base["proveedor"] = user["proveedor"]
+            cfg["proveedor"] = user["proveedor"]
         if "openrouter_api_key" in user:
-            base.setdefault("openrouter", {})["api_key"] = user["openrouter_api_key"]
+            cfg["openrouter"]["api_key"] = user["openrouter_api_key"]
         if "ollama_base_url" in user:
-            base.setdefault("ollama", {})["base_url"] = user["ollama_base_url"]
+            cfg["ollama"]["base_url"] = user["ollama_base_url"]
         if "modelo_filtro" in user:
-            base.setdefault("modelos", {})["filtro"] = user["modelo_filtro"]
+            cfg["modelos"]["filtro"] = user["modelo_filtro"]
         if "modelo_escritura" in user:
-            base.setdefault("modelos", {})["escritura"] = user["modelo_escritura"]
-    return base
+            cfg["modelos"]["escritura"] = user["modelo_escritura"]
+    return cfg
 
 
 def chat(model: str, prompt: str, json_mode: bool = False) -> str:

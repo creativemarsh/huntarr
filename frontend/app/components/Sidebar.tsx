@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 const nav = [
   { href: "/configuracion", label: "Configuración", icon: "⚙️" },
   { href: "/dashboard",     label: "Dashboard",     icon: "📊", disabled: true },
-  { href: "/cv",            label: "Mi CV",          icon: "📄", disabled: true },
-  { href: "/postulaciones", label: "Postulaciones",  icon: "💼", disabled: true },
+  { href: "/cv",            label: "Mi CV",          icon: "📄" },
+  { href: "/postulaciones", label: "Postulaciones",  icon: "💼" },
 ];
 
 export default function Sidebar() {

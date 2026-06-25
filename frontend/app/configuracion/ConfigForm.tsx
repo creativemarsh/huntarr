@@ -135,7 +135,14 @@ export default function ConfigForm({ initialConfig }: { initialConfig: Config | 
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch("http://localhost:8000/api/config/test", { method: "POST" });
+      const testBody: Record<string, string> = { proveedor };
+      if (proveedor === "openrouter" && apiKey) testBody.api_key = apiKey;
+      if (proveedor === "ollama") testBody.ollama_base_url = ollamaUrl;
+      const res = await fetch("http://localhost:8000/api/config/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(testBody),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail ?? "Error desconocido");
       setTestResult({ ok: true, message: `Conexión exitosa — "${data.response}"` });
@@ -190,7 +197,7 @@ export default function ConfigForm({ initialConfig }: { initialConfig: Config | 
           {apiKeySaved && (
             <div className="flex items-center gap-2 text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
               <span>✓</span>
-              <span>Guardada — <span className="font-mono">{apiKeyPreview}</span></span>
+              <span>Key guardada</span>
             </div>
           )}
           <div className="relative">

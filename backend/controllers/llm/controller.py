@@ -6,7 +6,7 @@ import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from shared.llm_client import chat, _load_config
+from services.llm.client import _load_config
 
 ROOT = Path(__file__).parent.parent.parent
 USER_CONFIG_PATH = ROOT / "data" / "user_config.json"
@@ -73,13 +73,40 @@ def save_config(body: ConfigUpdate):
     return {"ok": True}
 
 
+class TestRequest(BaseModel):
+    proveedor: str
+    api_key: Optional[str] = None
+    ollama_base_url: Optional[str] = None
+
+
 @router.post("/config/test")
-def test_config():
+def test_config(body: TestRequest):
+    cfg = _load_config()
+    proveedor = body.proveedor
     try:
-        cfg = _load_config()
-        model = cfg["modelos"]["escritura"]
-        response = chat(model=model, prompt="Responde solo: ok")
-        return {"ok": True, "response": response.strip()}
+        if proveedor == "ollama":
+            base_url = body.ollama_base_url or cfg.get("ollama", {}).get("base_url", "http://localhost:11434")
+            resp = requests.get(f"{base_url}/api/tags", timeout=5)
+            resp.raise_for_status()
+            models = [m["name"] for m in resp.json().get("models", [])]
+            return {"ok": True, "response": f"{len(models)} modelo(s) instalado(s)"}
+        else:
+            api_key = body.api_key or cfg.get("openrouter", {}).get("api_key", "")
+            if not api_key:
+                raise HTTPException(400, "No hay API key guardada")
+            resp = requests.get(
+                "https://openrouter.ai/api/v1/auth/key",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            return {"ok": True, "response": "Cuenta válida"}
+    except HTTPException:
+        raise
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(503, f"No se pudo conectar con {proveedor}")
+    except requests.exceptions.HTTPError as e:
+        raise HTTPException(e.response.status_code, str(e))
     except Exception as e:
         raise HTTPException(500, str(e))
 

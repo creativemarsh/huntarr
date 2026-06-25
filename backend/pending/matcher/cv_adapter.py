@@ -1,9 +1,8 @@
 from pathlib import Path
 
 import markdown as md_lib
-import yaml
 
-from shared.llm_client import chat
+from shared.llm_client import chat, _load_config
 from shared.profile import read_pdf
 
 CSS = """
@@ -21,10 +20,6 @@ a { color: #1a1a1a; }
 ROOT = Path(__file__).parent.parent
 CV_PATH = ROOT / "data" / "input" / "cv_base.pdf"
 OUTPUT_DIR = ROOT / "data" / "output" / "cvs"
-
-_config = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
-MODELO_ESCRITURA: str = _config["modelos"]["escritura"]
-
 
 def adaptar_cv(oferta: dict) -> Path:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -58,7 +53,7 @@ Genera el CV adaptado en Markdown siguiendo estas reglas estrictamente:
 
 Devuelve SOLO el Markdown del CV. Sin explicaciones, sin comentarios."""
 
-    cv_adaptado = chat(model=MODELO_ESCRITURA, prompt=prompt)
+    cv_adaptado = chat(model=_load_config()["modelos"]["escritura"], prompt=prompt)
     output_path.write_text(cv_adaptado, encoding="utf-8")
 
     html_path = OUTPUT_DIR / f"cv_{oferta['id']}.html"

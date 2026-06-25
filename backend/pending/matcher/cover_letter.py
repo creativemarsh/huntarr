@@ -1,15 +1,10 @@
 from pathlib import Path
 
-import yaml
-
 from shared.models import Profile
-from shared.llm_client import chat
+from shared.llm_client import chat, _load_config
 
 ROOT = Path(__file__).parent.parent
 OUTPUT_DIR = ROOT / "data" / "output" / "cartas"
-
-_config = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
-MODELO_ESCRITURA: str = _config["modelos"]["escritura"]
 
 
 def generar_carta(oferta: dict, profile: Profile) -> Path:
@@ -40,6 +35,6 @@ REGLAS:
 
 Devuelve SOLO la carta, sin comentarios ni encabezados extra."""
 
-    carta = chat(model=MODELO_ESCRITURA, prompt=prompt)
+    carta = chat(model=_load_config()["modelos"]["escritura"], prompt=prompt)
     output_path.write_text(carta, encoding="utf-8")
     return output_path

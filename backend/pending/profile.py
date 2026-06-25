@@ -2,17 +2,13 @@ import json
 from pathlib import Path
 
 import pdfplumber
-import yaml
 
 from .models import Profile
-from .llm_client import chat_json
+from .llm_client import chat_json, _load_config
 
 ROOT = Path(__file__).parent.parent
 PROFILE_PATH = ROOT / "data" / "state" / "profile.json"
 CV_PATH = ROOT / "data" / "input" / "cv_base.pdf"
-
-_config = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
-MODELO_ESCRITURA: str = _config["modelos"]["escritura"]
 
 
 def read_pdf(path: Path) -> str:
@@ -34,7 +30,7 @@ def extract_profile() -> Profile:
     cv_text = read_pdf(CV_PATH)
 
     profile_data = chat_json(
-        model=MODELO_ESCRITURA,
+        model=_load_config()["modelos"]["escritura"],
         prompt=f"""Analiza el siguiente CV y extrae la información en formato JSON con esta estructura exacta:
 {{
   "nombre": "nombre completo del candidato",
