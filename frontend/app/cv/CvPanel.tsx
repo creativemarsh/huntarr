@@ -211,6 +211,20 @@ function ProfileViewer({ profile, onSave }: { profile: Profile; onSave: (p: Prof
     setDraft(d => ({ ...d, [field]: raw.split(",").map(s => s.trim()).filter(Boolean) }));
   }
 
+  async function removeItem(field: string, item: string) {
+    const current = (profile as any)[field] as string[];
+    const updated = current.filter((i: string) => i !== item);
+    try {
+      const res = await fetch("http://localhost:8000/api/cv/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: updated }),
+      });
+      const data = await res.json();
+      if (res.ok) onSave(data.profile);
+    } catch {}
+  }
+
   if (!editing) {
     return (
       <div className="mt-4 border-t border-zinc-800 pt-4 space-y-3">
@@ -225,9 +239,9 @@ function ProfileViewer({ profile, onSave }: { profile: Profile; onSave: (p: Prof
         <ProfileField label="Resumen" value={profile.resumen} />
         <ProfileField label="Educación" value={profile.educacion} />
         <ProfileField label="Experiencia" value={`${profile.experiencia_anos} año(s)`} />
-        <ProfileListField label="Cargos objetivo" items={profile.cargo_objetivo} />
-        <ProfileListField label="Skills" items={profile.skills} />
-        <ProfileListField label="Idiomas" items={profile.idiomas} />
+        <ProfileListField label="Cargos objetivo" items={profile.cargo_objetivo} field="cargo_objetivo" onRemove={removeItem} />
+        <ProfileListField label="Skills" items={profile.skills} field="skills" onRemove={removeItem} />
+        <ProfileListField label="Idiomas" items={profile.idiomas} field="idiomas" onRemove={removeItem} />
         {saveMsg && <p className="text-xs text-emerald-400">{saveMsg}</p>}
       </div>
     );
@@ -474,15 +488,30 @@ function ProfileField({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ProfileListField({ label, items }: { label: string; items: string[] }) {
+function ProfileListField({
+  label, items, field, onRemove,
+}: {
+  label: string;
+  items: string[];
+  field?: string;
+  onRemove?: (field: string, item: string) => void;
+}) {
   if (!items.length) return null;
   return (
     <div>
       <p className="text-xs text-zinc-500 mb-1">{label}</p>
       <div className="flex flex-wrap gap-1.5">
         {items.map((item, i) => (
-          <span key={`${item}-${i}`} className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-xs">
+          <span key={`${item}-${i}`} className="flex items-center gap-1 px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-xs group">
             {item}
+            {onRemove && field && (
+              <button
+                onClick={() => onRemove(field, item)}
+                className="text-zinc-600 hover:text-red-400 transition-colors leading-none"
+              >
+                ×
+              </button>
+            )}
           </span>
         ))}
       </div>

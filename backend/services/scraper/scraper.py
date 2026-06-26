@@ -72,33 +72,17 @@ def _run(cfg: dict, terms: list[str]) -> None:
             with _lock:
                 _state["current_term"] = term
 
-            try:
-                kwargs = dict(
-                    site_name=["indeed", "linkedin"],
-                    search_term=f'"{term}"',
-                    location=cfg.get("ubicacion", "Chile"),
-                    hours_old=cfg.get("horas_atras", 168),
-                    results_wanted=cfg.get("resultados_por_termino", 25),
-                    country_indeed="Chile",
-                    linkedin_fetch_description=True,
-                )
-                df = scrape_jobs(**kwargs)
-
+            for df in _scrape_all(term, cfg):
                 if not df.empty:
                     df = df[df["job_url"].apply(
                         lambda u: bool(u) and str(u).strip() != "" and
                         hashlib.md5(str(u).strip().encode()).hexdigest()[:12] not in existing_ids
                     )]
-
                 jobs = _df_to_list(df)
-
                 for job in jobs:
                     existing_ids.add(job["id"])
                     with _lock:
                         _state["jobs"].append(job)
-
-            except Exception as e:
-                pass
 
             with _lock:
                 if _state["cancelled"]:
@@ -166,6 +150,49 @@ def _save_jobs() -> None:
 
     JOBS_PATH.parent.mkdir(parents=True, exist_ok=True)
     JOBS_PATH.write_text(json.dumps(existing, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _google_time_phrase(hours: int) -> str:
+    if hours <= 24:
+        return "since yesterday"
+    if hours <= 72:
+        return "in the last 3 days"
+    if hours <= 168:
+        return "in the last week"
+    return "in the last month"
+
+
+def _scrape_all(term: str, cfg: dict):
+    location = cfg.get("ubicacion", "Chile")
+    hours = cfg.get("horas_atras", 168)
+    results = cfg.get("resultados_por_termino", 25)
+
+    # Indeed + LinkedIn
+    try:
+        yield scrape_jobs(
+            site_name=["indeed", "linkedin"],
+            search_term=f'"{term}"',
+            location=location,
+            hours_old=hours,
+            results_wanted=results,
+            country_indeed="Chile",
+            linkedin_fetch_description=True,
+        )
+    except Exception:
+        yield pd.DataFrame()
+
+    time.sleep(2)
+
+    # Google Jobs
+    try:
+        google_query = f'{term} jobs near {location} {_google_time_phrase(hours)}'
+        yield scrape_jobs(
+            site_name="google",
+            google_search_term=google_query,
+            results_wanted=results,
+        )
+    except Exception:
+        yield pd.DataFrame()
 
 
 def _df_to_list(df: pd.DataFrame) -> list[dict]:

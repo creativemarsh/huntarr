@@ -1,14 +1,24 @@
 from jobspy import scrape_jobs
 
-df = scrape_jobs(
-    site_name=["indeed", "linkedin"],
-    search_term='"data engineer"',
-    location="Chile",
-    hours_old=168,
-    results_wanted=10,
-    country_indeed="Chile",
-    linkedin_fetch_description=True,
-)
+# Queries siguiendo el formato exacto de la documentación
+queries = [
+    "data engineer jobs near Santiago, Chile in the last week",
+    "data engineer jobs near Chile in the last week",
+    "data engineer jobs near Santiago in the last week",
+    "software engineer jobs near Santiago, Chile in the last week",
+    "data engineer jobs near London, United Kingdom in the last week",  # control: ciudad conocida
+]
+
+for q in queries:
+    try:
+        df = scrape_jobs(
+            site_name="google",
+            google_search_term=q,
+            results_wanted=5,
+        )
+        print(f"[{len(df):2d}] {q}")
+    except Exception as e:
+        print(f"[ERR] {q} — {e}")
 
 print(f"{len(df)} resultado(s)\n")
 

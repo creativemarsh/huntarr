@@ -24,6 +24,19 @@ class Profile(BaseModel):
     @field_validator("idiomas", "skills", "cargo_objetivo", mode="before")
     @classmethod
     def coerce_to_list(cls, v):
+        if v is None:
+            return []
         if isinstance(v, dict):
             return [f"{k} {val}".strip() for k, val in v.items()]
+        if isinstance(v, str):
+            return [v] if v.strip() else []
+        return v
+
+    @field_validator("sobre_mi", "ubicacion", mode="before")
+    @classmethod
+    def coerce_optional_str(cls, v):
+        if v is None:
+            return ""
+        if isinstance(v, list):
+            return " ".join(str(i) for i in v)
         return v

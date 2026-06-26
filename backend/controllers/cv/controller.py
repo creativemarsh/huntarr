@@ -33,6 +33,7 @@ class ProfileUpdate(BaseModel):
     ubicacion: Optional[str] = None
     graduado: Optional[bool] = None
     ano_graduacion: Optional[int] = None
+    sobre_mi: Optional[str] = None
 
 
 @router.get("/cv/status")
