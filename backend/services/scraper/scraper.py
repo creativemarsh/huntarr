@@ -8,6 +8,8 @@ from pathlib import Path
 import pandas as pd
 from jobspy import scrape_jobs
 
+from services.scraper import getonboard, firstjob
+
 ROOT = Path(__file__).parent.parent.parent
 JOBS_PATH = ROOT / "data" / "state" / "jobs.json"
 
@@ -43,7 +45,13 @@ def get_all_jobs() -> list[dict]:
     if not JOBS_PATH.exists():
         return []
     try:
-        return json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        import math
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        for job in jobs:
+            for k, v in job.items():
+                if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                    job[k] = None
+        return jobs
     except Exception:
         return []
 
@@ -152,14 +160,6 @@ def _save_jobs() -> None:
     JOBS_PATH.write_text(json.dumps(existing, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def _google_time_phrase(hours: int) -> str:
-    if hours <= 24:
-        return "since yesterday"
-    if hours <= 72:
-        return "in the last 3 days"
-    if hours <= 168:
-        return "in the last week"
-    return "in the last month"
 
 
 def _scrape_all(term: str, cfg: dict):
@@ -183,16 +183,14 @@ def _scrape_all(term: str, cfg: dict):
 
     time.sleep(2)
 
-    # Google Jobs
-    try:
-        google_query = f'{term} jobs near {location} {_google_time_phrase(hours)}'
-        yield scrape_jobs(
-            site_name="google",
-            google_search_term=google_query,
-            results_wanted=results,
-        )
-    except Exception:
-        yield pd.DataFrame()
+    # GetOnBoard (Chilean job board — public API)
+    yield getonboard.scrape(term, results, location)
+
+    time.sleep(2)
+
+    # FirstJob (Chilean junior/internship board — HTML scraping)
+    yield firstjob.scrape(term, results, location)
+
 
 
 def _df_to_list(df: pd.DataFrame) -> list[dict]:
@@ -236,6 +234,10 @@ def _safe_date(val) -> str | None:
 
 def _safe_float(val) -> float | None:
     try:
-        return float(val) if val is not None else None
+        if val is None:
+            return None
+        import math
+        f = float(val)
+        return None if (math.isnan(f) or math.isinf(f)) else f
     except (ValueError, TypeError):
         return None

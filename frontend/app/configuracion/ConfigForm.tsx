@@ -234,7 +234,19 @@ export default function ConfigForm({ initialConfig }: { initialConfig: Config | 
 
       {/* Modelos */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
-        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Modelos</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Modelos</h2>
+          {proveedor === "ollama" && (
+            <button
+              onClick={fetchOllamaModels}
+              disabled={loadingModels}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className={loadingModels ? "animate-spin" : ""}>↻</span>
+              {loadingModels ? "Cargando..." : "Refrescar"}
+            </button>
+          )}
+        </div>
         <div className="space-y-3">
           <div>
             <label className="text-xs text-zinc-500 block mb-1.5">

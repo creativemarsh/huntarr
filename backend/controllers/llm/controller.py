@@ -22,6 +22,7 @@ class ConfigUpdate(BaseModel):
     modelo_filtro: Optional[str] = None
     modelo_escritura: Optional[str] = None
     ollama_base_url: Optional[str] = None
+    criterio_ia_enabled: Optional[bool] = None
 
 
 def _load_user_config() -> dict:
@@ -46,6 +47,7 @@ def get_config():
         "modelo_filtro": user.get("modelo_filtro", "deepseek-r1:8b"),
         "modelo_escritura": user.get("modelo_escritura", "phi3.5"),
         "ollama_base_url": user.get("ollama_base_url", "http://localhost:11434"),
+        "criterio_ia_enabled": user.get("criterio_ia_enabled", False),
     }
 
 
@@ -68,6 +70,9 @@ def save_config(body: ConfigUpdate):
 
     if body.ollama_base_url is not None:
         user["ollama_base_url"] = body.ollama_base_url
+
+    if body.criterio_ia_enabled is not None:
+        user["criterio_ia_enabled"] = body.criterio_ia_enabled
 
     _save_user_config(user)
     return {"ok": True}

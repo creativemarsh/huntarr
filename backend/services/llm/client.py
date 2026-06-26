@@ -17,6 +17,7 @@ _DEFAULTS = {
     "ollama": {"base_url": "http://localhost:11434"},
     "openrouter": {},
     "modelos": {"filtro": "deepseek-r1:8b", "escritura": "phi3.5"},
+    "criterio_ia_enabled": False,
 }
 
 
@@ -36,6 +37,8 @@ def _load_config() -> dict:
             cfg["modelos"]["filtro"] = user["modelo_filtro"]
         if "modelo_escritura" in user:
             cfg["modelos"]["escritura"] = user["modelo_escritura"]
+        if "criterio_ia_enabled" in user:
+            cfg["criterio_ia_enabled"] = user["criterio_ia_enabled"]
     return cfg
 
 

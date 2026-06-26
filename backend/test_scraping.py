@@ -1,50 +1,85 @@
-from jobspy import scrape_jobs
+"""
+Test rápido de cada fuente de scraping por separado.
+Uso: python test_scraping.py [term] [location]
+"""
+import sys
+import os
 
-# Queries siguiendo el formato exacto de la documentación
-queries = [
-    "data engineer jobs near Santiago, Chile in the last week",
-    "data engineer jobs near Chile in the last week",
-    "data engineer jobs near Santiago in the last week",
-    "software engineer jobs near Santiago, Chile in the last week",
-    "data engineer jobs near London, United Kingdom in the last week",  # control: ciudad conocida
-]
+# Permite importar desde services/
+sys.path.insert(0, os.path.dirname(__file__))
 
-for q in queries:
-    try:
-        df = scrape_jobs(
-            site_name="google",
-            google_search_term=q,
-            results_wanted=5,
-        )
-        print(f"[{len(df):2d}] {q}")
-    except Exception as e:
-        print(f"[ERR] {q} — {e}")
+TERM = sys.argv[1] if len(sys.argv) > 1 else "data engineer"
+LOCATION = sys.argv[2] if len(sys.argv) > 2 else "Chile"
+N = 5
 
-print(f"{len(df)} resultado(s)\n")
+print(f"\n{'='*60}")
+print(f"Término: {TERM!r}  |  Ubicación: {LOCATION!r}")
+print(f"{'='*60}\n")
 
-shown = {"indeed": False, "linkedin": False}
 
-for _, row in df.iterrows():
-    titulo  = str(row.get("title", "")).strip()
-    empresa = str(row.get("company", "")).strip()
-    fuente  = str(row.get("site", "")).strip()
-    desc    = str(row.get("description", "") or "").strip()
-    nivel   = str(row.get("job_level", "") or "").strip()
-    nivel_str = f" | nivel: {nivel}" if nivel and nivel != "nan" else ""
-    print(f"[{fuente}] {titulo} — {empresa}  ({len(desc)} chars{nivel_str})")
+def show(source: str, df):
+    if df is None or df.empty:
+        print(f"[{source.upper():12s}]  0 resultados")
+        return
+    print(f"[{source.upper():12s}]  {len(df)} resultado(s)")
+    for _, row in df.iterrows():
+        url    = str(row.get("job_url", row.get("url", "")) or "")
+        titulo = str(row.get("title", row.get("titulo", "")) or "").strip()
+        emp    = str(row.get("company", row.get("empresa", "")) or "").strip()
+        desc   = str(row.get("description", row.get("descripcion", "")) or "").strip()
+        print(f"  • {titulo} — {emp}  ({len(desc)} chars)")
+        if url:
+            print(f"    {url[:90]}")
+    # Descripción completa del primer resultado con descripción
+    for _, row in df.iterrows():
+        desc = str(row.get("description", row.get("descripcion", "")) or "").strip()
+        if desc:
+            titulo = str(row.get("title", row.get("titulo", "")) or "").strip()
+            emp    = str(row.get("company", row.get("empresa", "")) or "").strip()
+            print(f"\n  --- DESCRIPCIÓN COMPLETA: {titulo} — {emp} ---")
+            print(f"  {desc[:1000]}")
+            break
+    print()
 
-print("\n" + "="*60)
-print("DESCRIPCIÓN COMPLETA — una por fuente")
-print("="*60)
 
-for _, row in df.iterrows():
-    fuente = str(row.get("site", "")).strip()
-    desc   = str(row.get("description", "") or "").strip()
-    if not shown.get(fuente) and desc:
-        titulo  = str(row.get("title", "")).strip()
-        empresa = str(row.get("company", "")).strip()
-        print(f"\n--- [{fuente.upper()}] {titulo} — {empresa} ---\n")
-        print(desc)
-        shown[fuente] = True
-    if all(shown.values()):
-        break
+# ── Indeed + LinkedIn (JobSpy) ──────────────────────────────────────────────
+try:
+    from jobspy import scrape_jobs
+    df_jobspy = scrape_jobs(
+        site_name=["indeed", "linkedin"],
+        search_term=f'"{TERM}"',
+        location=LOCATION,
+        hours_old=168,
+        results_wanted=N,
+        country_indeed="Chile",
+        linkedin_fetch_description=True,
+    )
+    # Normalize column names
+    if "job_url" not in df_jobspy.columns and "url" in df_jobspy.columns:
+        df_jobspy = df_jobspy.rename(columns={"url": "job_url"})
+except Exception as e:
+    print(f"[JOBSPY ERR] {e}")
+    df_jobspy = None
+
+show("indeed+linkedin", df_jobspy)
+
+# ── GetOnBoard ──────────────────────────────────────────────────────────────
+try:
+    from services.scraper.getonboard import scrape as gob_scrape
+    df_gob = gob_scrape(TERM, N, LOCATION)
+except Exception as e:
+    print(f"[GETONBOARD ERR] {e}")
+    df_gob = None
+
+show("getonboard", df_gob)
+
+# ── FirstJob ────────────────────────────────────────────────────────────────
+try:
+    from services.scraper.firstjob import scrape as fj_scrape
+    df_fj = fj_scrape(TERM, N, LOCATION)
+except Exception as e:
+    print(f"[FIRSTJOB ERR] {e}")
+    df_fj = None
+
+show("firstjob", df_fj)
+
