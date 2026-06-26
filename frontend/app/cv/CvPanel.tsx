@@ -12,6 +12,7 @@ type Profile = {
   idiomas: string[];
   resumen: string;
   ubicacion: string;
+  sobre_mi: string;
 };
 
 type CvStatus = {
@@ -158,6 +159,20 @@ export default function CvPanel({ initialStatus }: { initialStatus: CvStatus | n
         )}
       </section>
 
+      {/* Sobre mí */}
+      {status.profile && (
+        <SobreMiSection
+          initial={status.profile.sobre_mi ?? ""}
+          cargosActuales={status.profile.cargo_objetivo}
+          onRolesAdded={(roles) =>
+            setStatus(s => s.profile
+              ? { ...s, profile: { ...s.profile, cargo_objetivo: [...s.profile.cargo_objetivo, ...roles] } }
+              : s
+            )
+          }
+        />
+      )}
+
     </div>
   );
 }
@@ -275,6 +290,178 @@ function EditArea({ label, value, onChange }: { label: string; value: string; on
         className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500 resize-none"
       />
     </div>
+  );
+}
+
+const IMPORT_PROMPT = `Basándote en lo que sabes sobre mí — mis objetivos de carrera, lo que busco en un trabajo, las habilidades que quiero desarrollar, el tipo de empresa y ambiente que prefiero — escríbeme un párrafo de 3 a 5 oraciones en primera persona para una herramienta de búsqueda de empleo.
+
+Incluye:
+- Los roles o áreas hacia donde quiero moverme
+- Habilidades o tecnologías que quiero adquirir o profundizar
+- Mis preferencias de trabajo (remoto, empresa, tipo de proyectos, etc.)
+- Qué me motiva profesionalmente
+
+Sé directo y específico. Sin frases genéricas.`;
+
+function SobreMiSection({
+  initial,
+  cargosActuales,
+  onRolesAdded,
+}: {
+  initial: string;
+  cargosActuales: string[];
+  onRolesAdded: (roles: string[]) => void;
+}) {
+  const [text, setText]               = useState(initial);
+  const [saving, setSaving]           = useState(false);
+  const [saveMsg, setSaveMsg]         = useState<string | null>(null);
+  const [suggesting, setSuggesting]   = useState(false);
+  const [suggested, setSuggested]     = useState<string[]>([]);
+  const [selected, setSelected]       = useState<Set<string>>(new Set());
+  const [copied, setCopied]           = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const res = await fetch("http://localhost:8000/api/cv/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sobre_mi: text }),
+      });
+      if (!res.ok) throw new Error("Error al guardar");
+      setSaveMsg("Guardado");
+    } catch {
+      setSaveMsg("Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSuggest() {
+    setSuggesting(true);
+    setSuggested([]);
+    setSelected(new Set());
+    try {
+      const res = await fetch("http://localhost:8000/api/cv/suggest-roles", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail ?? "Error");
+      setSuggested(data.roles ?? []);
+    } catch (e) {
+      setSaveMsg(e instanceof Error ? e.message : "Error al sugerir roles");
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
+  async function handleAddRoles() {
+    const roles = Array.from(selected);
+    if (!roles.length) return;
+    try {
+      const res = await fetch("http://localhost:8000/api/cv/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cargo_objetivo: [...cargosActuales, ...roles] }),
+      });
+      if (!res.ok) throw new Error("Error al guardar");
+      onRolesAdded(roles);
+      setSuggested([]);
+      setSelected(new Set());
+    } catch {}
+  }
+
+  function toggleSelect(role: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(role) ? next.delete(role) : next.add(role);
+      return next;
+    });
+  }
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(IMPORT_PROMPT);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Sobre mí</h2>
+          <p className="text-xs text-zinc-600 mt-0.5">Lo que buscas, hacia dónde quieres ir, qué quieres aprender</p>
+        </div>
+        <button
+          onClick={handleCopy}
+          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors"
+        >
+          {copied ? "¡Copiado!" : "Copiar prompt para tu IA"}
+        </button>
+      </div>
+
+      <p className="text-xs text-zinc-500">
+        ¿No sabes qué escribir? Copia el prompt, pégalo en Claude, ChatGPT o Gemini — ellos ya te conocen y te ayudan a redactarlo.
+      </p>
+
+      <textarea
+        value={text}
+        onChange={e => { setText(e.target.value); setSaveMsg(null); }}
+        rows={5}
+        placeholder="Escribe aquí o pega lo que generó tu IA de confianza..."
+        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 resize-none"
+      />
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={handleSave}
+          disabled={saving || !text.trim()}
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
+        >
+          {saving ? "Guardando..." : "Guardar"}
+        </button>
+        <button
+          onClick={handleSuggest}
+          disabled={suggesting || !text.trim()}
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 disabled:opacity-50 transition-colors"
+        >
+          {suggesting ? "Analizando..." : "Sugerir roles"}
+        </button>
+        {saveMsg && (
+          <span className={`text-xs ${saveMsg === "Guardado" ? "text-emerald-400" : "text-red-400"}`}>
+            {saveMsg}
+          </span>
+        )}
+      </div>
+
+      {suggested.length > 0 && (
+        <div className="border-t border-zinc-800 pt-4 space-y-3">
+          <p className="text-xs text-zinc-500">Selecciona los roles que quieres agregar a tu búsqueda:</p>
+          <div className="flex flex-wrap gap-2">
+            {suggested.map(role => (
+              <button
+                key={role}
+                onClick={() => toggleSelect(role)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  selected.has(role)
+                    ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                    : "bg-zinc-800 text-zinc-400 border-zinc-700 hover:border-zinc-500"
+                }`}
+              >
+                {role}
+              </button>
+            ))}
+          </div>
+          {selected.size > 0 && (
+            <button
+              onClick={handleAddRoles}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+            >
+              Agregar {selected.size} rol(es) a mi búsqueda
+            </button>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 

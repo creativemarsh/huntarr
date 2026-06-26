@@ -80,6 +80,36 @@ def update_profile(body: ProfileUpdate):
     return {"ok": True, "profile": updated.model_dump()}
 
 
+@router.post("/cv/suggest-roles")
+def suggest_roles():
+    profile = get_profile()
+    if not profile:
+        raise HTTPException(400, "No hay perfil extraído aún")
+    if not profile.sobre_mi:
+        raise HTTPException(400, "Escribe algo en 'Sobre mí' primero")
+
+    from services.llm.client import chat_json, _load_config
+    cfg = _load_config()
+    prompt = f"""El candidato tiene estos cargos objetivo actualmente: {", ".join(profile.cargo_objetivo)}
+
+El candidato dice sobre sí mismo:
+{profile.sobre_mi}
+
+Basándote en lo que dice, sugiere entre 2 y 5 roles adicionales que podría buscar y que aún no están en su lista.
+Devuelve SOLO este JSON:
+{{
+  "roles": ["rol en español", "role in english", ...]
+}}
+Incluye cada rol en español e inglés como entradas separadas. Sin duplicar los que ya tiene."""
+
+    try:
+        result = chat_json(model=cfg["modelos"]["escritura"], prompt=prompt)
+        roles = [r for r in result.get("roles", []) if r not in profile.cargo_objetivo]
+        return {"roles": roles}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
 @router.post("/cv/extract")
 def extract_cv_profile():
     if not cv_exists():

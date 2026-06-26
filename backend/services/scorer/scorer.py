@@ -57,7 +57,7 @@ CANDIDATO:
 - Educación: {educacion}
 - Idiomas: {idiomas}
 - Ubicación: {candidato_ubicacion}
-- Resumen: {resumen}
+- Resumen: {resumen}{sobre_mi_str}
 
 OFERTA:
 Título: {titulo}
@@ -237,6 +237,7 @@ def _run(jobs: list[dict], profile: Profile) -> None:
 def _score_job(job: dict, profile: Profile) -> dict:
     es_remoto = job.get("es_remoto", False)
     remoto_str = " (Remoto)" if es_remoto else ""
+    sobre_mi_str = f"\n- Lo que busca: {profile.sobre_mi}" if getattr(profile, "sobre_mi", "") else ""
     prompt = _PROMPT.format(
         cargo_objetivo=", ".join(profile.cargo_objetivo),
         skills=", ".join(profile.skills),
@@ -245,6 +246,7 @@ def _score_job(job: dict, profile: Profile) -> dict:
         idiomas=", ".join(profile.idiomas) if profile.idiomas else "No especificado",
         candidato_ubicacion=profile.ubicacion or "No especificada",
         resumen=profile.resumen,
+        sobre_mi_str=sobre_mi_str,
         titulo=job.get("titulo", ""),
         empresa=job.get("empresa", ""),
         oferta_ubicacion=job.get("ubicacion", "") or "No especificada",
