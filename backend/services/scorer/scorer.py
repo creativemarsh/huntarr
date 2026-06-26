@@ -69,7 +69,7 @@ Descripción:
 Evalúa qué tan bien encaja esta oferta con el candidato y devuelve SOLO este JSON:
 {{
   "score": <número entero del 0 al 100>,
-  "razon": "<una sola oración explicando el score>"
+  "razon": "<una sola oración explicando el score>"{criterio_ia_section}
 }}
 
 Criterios de puntuación base:
@@ -97,6 +97,8 @@ UBICACIÓN:
 - Si la oferta NO es remota Y la ciudad de la oferta es distinta a la del candidato: descuenta 20 puntos del score base.
 
 Devuelve SOLO el JSON, sin texto adicional."""
+
+_CRITERIO_IA_FIELD = ',\n  "criterio_ia": "<2-3 oraciones con tu criterio propio: ¿es realmente el área del candidato o solo TI general?, red flags detectadas (sueldo vacío, no remota fuera de la ciudad del candidato, mismatch experiencia pedida vs condiciones ofrecidas), y si no es exactamente el área objetivo, ¿vale como puente de transición y por qué?>"'
 
 
 def get_state() -> dict:
@@ -190,6 +192,7 @@ def _run(jobs: list[dict], profile: Profile) -> None:
         proveedor = cfg.get("proveedor", "ollama")
         print(f"[scorer] proveedor={proveedor} modelo={modelo} jobs={len(jobs)}")
 
+        criterio_ia = cfg.get("criterio_ia_enabled", False)
         existing_scores = load_scores()
 
         for job in jobs:
@@ -207,7 +210,7 @@ def _run(jobs: list[dict], profile: Profile) -> None:
                         "scored_at": datetime.now().isoformat(),
                     }
                 else:
-                    score_data = _score_job(job, profile)  # puede lanzar _ServiceError
+                    score_data = _score_job(job, profile, criterio_ia=criterio_ia)  # puede lanzar _ServiceError
                 existing_scores[job["id"]] = score_data
 
             with _lock:
@@ -234,7 +237,7 @@ def _run(jobs: list[dict], profile: Profile) -> None:
             _state["current"] = ""
 
 
-def _score_job(job: dict, profile: Profile) -> dict:
+def _score_job(job: dict, profile: Profile, criterio_ia: bool = False) -> dict:
     es_remoto = job.get("es_remoto", False)
     remoto_str = " (Remoto)" if es_remoto else ""
     sobre_mi_str = f"\n- Lo que busca: {profile.sobre_mi}" if getattr(profile, "sobre_mi", "") else ""
@@ -252,15 +255,19 @@ def _score_job(job: dict, profile: Profile) -> dict:
         oferta_ubicacion=job.get("ubicacion", "") or "No especificada",
         remoto_str=remoto_str,
         descripcion=job.get("descripcion", "")[:1500],
+        criterio_ia_section=_CRITERIO_IA_FIELD if criterio_ia else "",
     )
     try:
         cfg = _load_config()
         result = chat_json(model=cfg["modelos"]["filtro"], prompt=prompt)
-        return {
+        data = {
             "score": max(0, min(100, int(result.get("score", 0)))),
             "razon": str(result.get("razon", "")),
             "scored_at": datetime.now().isoformat(),
         }
+        if criterio_ia and result.get("criterio_ia"):
+            data["criterio_ia"] = str(result["criterio_ia"])
+        return data
     except _requests.exceptions.HTTPError as e:
         code = e.response.status_code if e.response is not None else 0
         if code == 429:

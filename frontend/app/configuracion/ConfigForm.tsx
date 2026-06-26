@@ -9,6 +9,7 @@ type Config = {
   modelo_filtro: string;
   modelo_escritura: string;
   ollama_base_url: string;
+  criterio_ia_enabled: boolean;
 };
 
 const DEFAULT_MODELS = {
@@ -64,6 +65,7 @@ export default function ConfigForm({ initialConfig }: { initialConfig: Config | 
   const [ollamaUrl,       setOllamaUrl]       = useState(initialConfig?.ollama_base_url  ?? "http://localhost:11434");
   const [ollamaModels,    setOllamaModels]    = useState<string[]>([]);
   const [loadingModels,   setLoadingModels]   = useState(false);
+  const [criterioIa,      setCriterioIa]      = useState(initialConfig?.criterio_ia_enabled ?? false);
   const [saving,          setSaving]          = useState(false);
   const [saveResult,      setSaveResult]      = useState<"ok" | "error" | null>(null);
   const [testing,         setTesting]         = useState(false);
@@ -102,11 +104,12 @@ export default function ConfigForm({ initialConfig }: { initialConfig: Config | 
     setSaving(true);
     setSaveResult(null);
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, string | boolean> = {
         proveedor,
         modelo_filtro: modeloFiltro,
         modelo_escritura: modeloEscritura,
         ollama_base_url: ollamaUrl,
+        criterio_ia_enabled: criterioIa,
       };
       if (apiKey) body.api_key = apiKey;
 
@@ -291,6 +294,35 @@ export default function ConfigForm({ initialConfig }: { initialConfig: Config | 
             )}
           </div>
         </div>
+      </section>
+
+      {/* Comportamiento IA */}
+      <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Comportamiento IA</h2>
+        <button
+          type="button"
+          onClick={() => setCriterioIa(!criterioIa)}
+          className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
+            criterioIa
+              ? "bg-violet-600/10 border-violet-500/30 text-violet-300"
+              : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+          }`}
+        >
+          <div className="text-left">
+            <p className="text-sm font-medium">Criterio propio de la IA</p>
+            <p className="text-xs mt-0.5 opacity-70">
+              La IA agrega su propia opinión: alineación de carrera, red flags y valor de transición
+            </p>
+          </div>
+          <div className={`shrink-0 w-9 h-5 rounded-full transition-colors relative ml-4 ${criterioIa ? "bg-violet-500" : "bg-zinc-600"}`}>
+            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${criterioIa ? "translate-x-4" : "translate-x-0.5"}`} />
+          </div>
+        </button>
+        {criterioIa && (
+          <p className="text-xs text-zinc-500 px-1">
+            Usa más tokens por oferta. Con modelos pequeños (&lt;7B) el criterio puede ser genérico.
+          </p>
+        )}
       </section>
 
       {/* Acciones */}

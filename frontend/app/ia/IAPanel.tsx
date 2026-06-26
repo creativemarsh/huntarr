@@ -13,11 +13,10 @@ type ScoredJob = {
   es_remoto: boolean;
   score: number;
   razon: string;
+  criterio_ia?: string;
   scored_at: string;
   feedback?: "up" | "down" | null;
 };
-
-type Filter = "all" | "top" | "relevant";
 
 function scoreBadge(score: number) {
   if (score >= 80) return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
@@ -39,7 +38,7 @@ export default function IAPanel() {
   const [currentJob, setCurrentJob]   = useState("");
   const [progress, setProgress]       = useState<{ current: number; total: number } | null>(null);
   const [error, setError]             = useState<string | null>(null);
-  const [filter, setFilter]           = useState<Filter>("all");
+  const [minScore, setMinScore]       = useState(0);
   const [loading, setLoading]         = useState(true);
   const [modelInfo, setModelInfo]     = useState<{ proveedor: string; modelo: string } | null>(null);
   const [stale, setStale]             = useState(false);
@@ -146,10 +145,8 @@ export default function IAPanel() {
   }
 
   const filtered = useMemo(() => {
-    if (filter === "top") return results.filter(r => r.score >= 80);
-    if (filter === "relevant") return results.filter(r => r.score >= 60);
-    return results;
-  }, [results, filter]);
+    return results.filter(r => r.score >= minScore);
+  }, [results, minScore]);
 
   const counts = useMemo(() => ({
     top: results.filter(r => r.score >= 80).length,
@@ -249,30 +246,46 @@ export default function IAPanel() {
         )}
       </div>
 
-      {/* Filtro tabs */}
+      {/* Filtro por score */}
       {results.length > 0 && (
-        <div className="flex gap-2">
-          {(["all", "relevant", "top"] as Filter[]).map(f => {
-            const labels = { all: "Todas", relevant: "Relevantes", top: "Top" };
-            const countMap = { all: counts.all, relevant: counts.relevant, top: counts.top };
-            const active = filter === f;
-            return (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                  active
-                    ? "bg-violet-600/20 text-violet-300 border border-violet-500/30"
-                    : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"
-                }`}
-              >
-                {labels[f]}
-                <span className={`px-1.5 py-0.5 rounded text-xs ${active ? "bg-violet-500/30" : "bg-zinc-800"}`}>
-                  {countMap[f]}
-                </span>
-              </button>
-            );
-          })}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-zinc-400">Score mínimo</span>
+            <div className="flex items-center gap-3">
+              {([0, 60, 80] as const).map(preset => (
+                <button
+                  key={preset}
+                  onClick={() => setMinScore(preset)}
+                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                    minScore === preset
+                      ? "bg-violet-600/20 text-violet-300 border border-violet-500/30"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  {preset === 0 ? `Todas (${counts.all})` : preset === 60 ? `≥60 (${counts.relevant})` : `≥80 (${counts.top})`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={minScore}
+              onChange={e => setMinScore(Number(e.target.value))}
+              className="flex-1 accent-violet-500 h-1"
+            />
+            <span className={`w-10 text-right text-sm font-semibold tabular-nums ${
+              minScore >= 80 ? "text-emerald-400" : minScore >= 60 ? "text-yellow-400" : "text-zinc-400"
+            }`}>
+              {minScore}
+            </span>
+          </div>
+          {filtered.length !== results.length && (
+            <p className="text-xs text-zinc-500">{filtered.length} de {results.length} ofertas</p>
+          )}
         </div>
       )}
 
@@ -328,6 +341,11 @@ function ScoredJobCard({
           </p>
           {job.razon && (
             <p className="text-xs text-zinc-500 mt-1 italic">{job.razon}</p>
+          )}
+          {job.criterio_ia && (
+            <p className="text-xs text-violet-400/70 mt-1 border-l-2 border-violet-500/30 pl-2">
+              {job.criterio_ia}
+            </p>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
