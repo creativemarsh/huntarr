@@ -1,8 +1,11 @@
 import hashlib
 import json
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
+
+import requests as _requests
 
 from models.profile import Profile
 from services.llm.client import chat_json, _load_config
@@ -14,6 +17,7 @@ _lock = threading.Lock()
 _state: dict = {
     "running": False,
     "done": False,
+    "cancelled": False,
     "total": 0,
     "scored": 0,
     "current": "",
@@ -155,6 +159,7 @@ def start(jobs: list[dict], profile: Profile) -> bool:
             return False
         _state["running"] = True
         _state["done"] = False
+        _state["cancelled"] = False
         _state["error"] = None
         _state["results"] = []
         _state["total"] = len(jobs)
@@ -164,6 +169,18 @@ def start(jobs: list[dict], profile: Profile) -> bool:
     thread = threading.Thread(target=_run, args=(jobs, profile), daemon=True)
     thread.start()
     return True
+
+
+def cancel() -> bool:
+    with _lock:
+        if not _state["running"]:
+            return False
+        _state["cancelled"] = True
+    return True
+
+
+class _ServiceError(Exception):
+    """Error de servicio externo — aborta el scoring completo."""
 
 
 def _run(jobs: list[dict], profile: Profile) -> None:
@@ -190,16 +207,23 @@ def _run(jobs: list[dict], profile: Profile) -> None:
                         "scored_at": datetime.now().isoformat(),
                     }
                 else:
-                    score_data = _score_job(job, profile)
+                    score_data = _score_job(job, profile)  # puede lanzar _ServiceError
                 existing_scores[job["id"]] = score_data
 
             with _lock:
                 _state["results"].append({**job, **score_data})
                 _state["scored"] += 1
+                if _state["cancelled"]:
+                    break
 
         _save_scores(existing_scores)
         _save_meta(profile)
 
+    except _ServiceError as e:
+        # Guarda los scores parciales ya calculados antes del fallo
+        _save_scores(existing_scores)
+        with _lock:
+            _state["error"] = str(e)
     except Exception as e:
         with _lock:
             _state["error"] = str(e)
@@ -235,6 +259,15 @@ def _score_job(job: dict, profile: Profile) -> dict:
             "razon": str(result.get("razon", "")),
             "scored_at": datetime.now().isoformat(),
         }
+    except _requests.exceptions.HTTPError as e:
+        code = e.response.status_code if e.response is not None else 0
+        if code == 429:
+            raise _ServiceError("Límite de peticiones alcanzado (429). Espera unos minutos o cambia el modelo en Configuración.")
+        if code in (500, 502, 503):
+            raise _ServiceError(f"El servicio de IA no está disponible ({code}). Verifica el modelo en Configuración.")
+        raise _ServiceError(f"Error HTTP {code} del servicio de IA.")
+    except (_requests.exceptions.ConnectionError, _requests.exceptions.Timeout):
+        raise _ServiceError("No se pudo conectar con el servicio de IA. Verifica el modelo en Configuración.")
     except Exception as e:
         return {
             "score": 0,

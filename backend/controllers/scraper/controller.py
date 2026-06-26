@@ -28,6 +28,14 @@ def list_jobs():
     return scraper_svc.get_all_jobs()
 
 
+@router.post("/scraper/cancel")
+def cancel_scraper():
+    cancelled = scraper_svc.cancel()
+    if not cancelled:
+        raise HTTPException(409, "No hay scraping en curso")
+    return {"ok": True}
+
+
 @router.delete("/scraper/jobs")
 def clear_jobs():
     if scraper_svc.get_state()["running"]:

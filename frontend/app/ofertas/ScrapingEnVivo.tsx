@@ -59,6 +59,12 @@ export default function ScrapingEnVivo({ onDone }: Props) {
     es.onerror = () => { setRunning(false); es.close(); };
   }
 
+  async function handleCancel() {
+    try {
+      await fetch("http://localhost:8000/api/scraper/cancel", { method: "POST" });
+    } catch {}
+  }
+
   async function handleStart() {
     setError(null);
     setJobs([]);
@@ -87,17 +93,27 @@ export default function ScrapingEnVivo({ onDone }: Props) {
                 : "Inicia un scraping para buscar ofertas"}
           </p>
         </div>
-        <button
-          onClick={handleStart}
-          disabled={running}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            running
-              ? "bg-zinc-700 text-zinc-400 cursor-not-allowed"
-              : "bg-violet-600 hover:bg-violet-500 text-white"
-          }`}
-        >
-          {running ? "Scrapeando..." : "Iniciar scraping"}
-        </button>
+        <div className="flex gap-2">
+          {running && (
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-zinc-800 border border-zinc-700 transition-colors"
+            >
+              Cancelar
+            </button>
+          )}
+          <button
+            onClick={handleStart}
+            disabled={running}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              running
+                ? "bg-zinc-700 text-zinc-400 cursor-not-allowed"
+                : "bg-violet-600 hover:bg-violet-500 text-white"
+            }`}
+          >
+            {running ? "Scrapeando..." : "Iniciar scraping"}
+          </button>
+        </div>
       </div>
 
       {running && (

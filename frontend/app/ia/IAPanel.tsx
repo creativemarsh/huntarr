@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import ServiceErrorHint from "../components/ServiceErrorHint";
 
 type ScoredJob = {
   id: string;
@@ -104,6 +105,12 @@ export default function IAPanel() {
     es.onerror = () => { setRunning(false); es.close(); };
   }
 
+  async function handleCancel() {
+    try {
+      await fetch("http://localhost:8000/api/ia/cancel", { method: "POST" });
+    } catch {}
+  }
+
   async function handleClear() {
     try {
       await fetch("http://localhost:8000/api/ia/scores", { method: "DELETE" });
@@ -180,6 +187,14 @@ export default function IAPanel() {
                 Limpiar
               </button>
             )}
+            {running && (
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-zinc-800 border border-zinc-700 transition-colors"
+              >
+                Cancelar
+              </button>
+            )}
             <button
               onClick={handleScore}
               disabled={running}
@@ -226,7 +241,12 @@ export default function IAPanel() {
           </div>
         )}
 
-        {error && <p className="text-xs text-red-400 mt-2">✗ {error}</p>}
+        {error && (
+          <div className="mt-2">
+            <p className="text-xs text-red-400">✗ {error}</p>
+            <ServiceErrorHint message={error} />
+          </div>
+        )}
       </div>
 
       {/* Filtro tabs */}

@@ -49,6 +49,14 @@ def start_scoring():
     return {"ok": True, "total": len(jobs)}
 
 
+@router.post("/ia/cancel")
+def cancel_scoring():
+    cancelled = scorer_svc.cancel()
+    if not cancelled:
+        raise HTTPException(409, "No hay scoring en curso")
+    return {"ok": True}
+
+
 @router.delete("/ia/scores")
 def clear_scores():
     if scorer_svc.get_state()["running"]:

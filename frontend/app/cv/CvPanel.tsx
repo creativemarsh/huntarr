@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from "react";
+import ServiceErrorHint from "../components/ServiceErrorHint";
 
 type Profile = {
   nombre: string;
@@ -141,9 +142,12 @@ export default function CvPanel({ initialStatus }: { initialStatus: CvStatus | n
         </button>
 
         {extractResult && (
-          <p className={`text-sm ${extractResult.ok ? "text-emerald-400" : "text-red-400"}`}>
-            {extractResult.ok ? "✓" : "✗"} {extractResult.message}
-          </p>
+          <div>
+            <p className={`text-sm ${extractResult.ok ? "text-emerald-400" : "text-red-400"}`}>
+              {extractResult.ok ? "✓" : "✗"} {extractResult.message}
+            </p>
+            {!extractResult.ok && <ServiceErrorHint message={extractResult.message} />}
+          </div>
         )}
 
         {status.profile && (

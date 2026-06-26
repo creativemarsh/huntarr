@@ -16,6 +16,7 @@ _lock = threading.Lock()
 _state: dict = {
     "running": False,
     "done": False,
+    "cancelled": False,
     "current_term": "",
     "jobs": [],
     "error": None,
@@ -53,6 +54,7 @@ def start(cfg: dict, terms: list[str]) -> bool:
             return False
         _state["running"] = True
         _state["done"] = False
+        _state["cancelled"] = False
         _state["error"] = None
         _state["jobs"] = []
         _state["current_term"] = ""
@@ -98,6 +100,10 @@ def _run(cfg: dict, terms: list[str]) -> None:
             except Exception as e:
                 pass
 
+            with _lock:
+                if _state["cancelled"]:
+                    break
+
             if i < len(terms) - 1:
                 time.sleep(2)
 
@@ -111,6 +117,14 @@ def _run(cfg: dict, terms: list[str]) -> None:
             _state["running"] = False
             _state["done"] = True
             _state["current_term"] = ""
+
+
+def cancel() -> bool:
+    with _lock:
+        if not _state["running"]:
+            return False
+        _state["cancelled"] = True
+    return True
 
 
 def clear() -> None:
